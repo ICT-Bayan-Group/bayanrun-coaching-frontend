@@ -3,7 +3,7 @@ import ScanPage from '@/views/ScanPage.vue'
 import RegisterPage from '@/views/RegisterPage.vue'
 import SuccessPage from '@/views/SuccessPage.vue'
 import NotFoundPage from '@/views/NotFoundPage.vue'
-
+import ScanAdminPage from '@/views/ScanAdminPage.vue'
 const routes = [
   {
     path: '/',
@@ -22,6 +22,12 @@ const routes = [
     name: 'success',
     component: SuccessPage,
     meta: { title: 'Berhasil! - Bayan Run 2026' }
+  },
+  {
+    path: '/admin',
+    name: 'scan-admin',
+    component: ScanAdminPage,
+    meta: { title: 'Admin Scan - Bayan Run 2026' }
   },
   {
     path: '/:pathMatch(.*)*',
