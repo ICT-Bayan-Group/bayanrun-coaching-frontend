@@ -5,6 +5,7 @@ export const useRegistrationStore = defineStore('registration', {
     invoiceNumber: null,
     participantData: null,
     successData: null,
+    source: 'user'
   }),
 
   actions: {
@@ -17,10 +18,15 @@ export const useRegistrationStore = defineStore('registration', {
     setSuccessData(data) {
       this.successData = data
     },
+    setSource(source) {
+      this.source = source
+    },
     reset() {
       this.invoiceNumber = null
       this.participantData = null
       this.successData = null
+      // source sengaja tidak direset di sini,
+      // biar SuccessPage masih bisa baca sebelum reset() dipanggil ulang
     }
   }
 })

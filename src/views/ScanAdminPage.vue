@@ -213,6 +213,7 @@ const initScanner = async () => {
 
 onMounted(() => {
   store.reset()
+  store.setSource('admin') // Set source to 'admin' when on ScanAdminPage
   initScanner()
 })
 

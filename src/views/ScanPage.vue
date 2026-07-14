@@ -31,6 +31,22 @@
         <div class="absolute bottom-3 left-3 w-6 h-6 z-20" style="border-bottom: 2px solid #E63946; border-left: 2px solid #E63946; border-radius: 0 0 0 4px;"></div>
         <div class="absolute bottom-3 right-3 w-6 h-6 z-20" style="border-bottom: 2px solid #E63946; border-right: 2px solid #E63946; border-radius: 0 0 4px 0;"></div>
 
+        <!-- Tombol switch kamera -->
+        <button
+          v-if="hasMultipleCameras"
+          @click="switchCamera"
+          type="button"
+          class="absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-transform active:scale-90 shrink-0"
+          style="background: rgba(10,22,40,0.55); backdrop-filter: blur(4px);"
+          aria-label="Ganti kamera"
+        >
+          <svg class="w-4 h-4 shrink-0" style="color: #FFFFFF;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 7h-3.17L15 5H9L7.17 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1Z" />
+            <path d="M16 13a4 4 0 1 1-6.83-2.83" />
+            <path d="M9 10.5 9 13 6.5 13" />
+          </svg>
+        </button>
+
         <!-- Video kamera: kita kontrol sendiri elemennya, qr-scanner cuma
              attach stream ke sini dan decode dari frame-nya -->
         <video ref="videoEl" class="w-full aspect-square object-cover" muted playsinline></video>
@@ -41,7 +57,36 @@
             <p class="text-sm font-medium" style="color: rgba(255,255,255,0.6);">Memuat kamera...</p>
           </div>
         </div>
+
+        <!-- Processing overlay (dipakai juga saat decode gambar dari galeri) -->
+        <div v-if="loading" class="absolute inset-0 flex items-center justify-center rounded-2xl" style="background: rgba(10,22,40,0.92);">
+          <div class="text-center">
+            <div class="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-3" style="border-color: #E63946; border-top-color: transparent;"></div>
+            <p class="text-sm font-medium" style="color: rgba(255,255,255,0.6);">Memproses...</p>
+          </div>
+        </div>
       </div>
+
+      <!-- Tombol upload dari galeri -->
+      <button
+        @click="triggerFilePicker"
+        type="button"
+        :disabled="loading"
+        class="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-colors disabled:opacity-50"
+        style="background: #FFFFFF; border: 1px solid rgba(10,22,40,0.1); color: #0A1628;"
+      >
+        <svg class="w-4 h-4 shrink-0" style="color: #E63946;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        Upload QR dari Galeri
+      </button>
+      <input
+        ref="fileInputEl"
+        type="file"
+        accept="image/*"
+        class="hidden"
+        @change="handleFileSelected"
+      />
 
       <!-- Error state -->
       <transition name="page">
@@ -104,11 +149,14 @@ const router = useRouter()
 const store = useRegistrationStore()
 
 const videoEl = ref(null)
+const fileInputEl = ref(null)
 const scanning = ref(false)
 const cameraReady = ref(false)
 const error = ref(null)
 const loading = ref(false)
 const manualInvoice = ref('')
+const hasMultipleCameras = ref(false)
+const currentFacingMode = ref('environment') // 'environment' = belakang, 'user' = depan
 let qrScanner = null
 
 const handleScanSuccess = async (result) => {
@@ -157,6 +205,70 @@ const restartScanner = () => {
   qrScanner?.start().then(() => { scanning.value = true })
 }
 
+// ==== Upload QR dari galeri ====
+const triggerFilePicker = () => {
+  if (loading.value) return
+  fileInputEl.value?.click()
+}
+
+const handleFileSelected = async (e) => {
+  const file = e.target.files?.[0]
+  // reset value biar bisa pilih file yang sama lagi kalau perlu
+  e.target.value = ''
+  if (!file) return
+
+  loading.value = true
+  error.value = null
+
+  // pause kamera sementara biar nggak rebutan proses sama hasil scan galeri
+  qrScanner?.stop()
+  scanning.value = false
+
+  try {
+    const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true })
+    const invoiceNumber = (result?.data || result || '').trim().toUpperCase()
+
+    if (!invoiceNumber) {
+      error.value = 'QR code tidak terbaca dari gambar tersebut.'
+      loading.value = false
+      restartScanner()
+      return
+    }
+
+    loading.value = false
+    await processInvoice(invoiceNumber)
+  } catch (err) {
+    console.error('[Scanner] gagal membaca QR dari gambar:', err)
+    error.value = 'Tidak dapat menemukan QR code pada gambar. Coba gambar lain atau gunakan input manual.'
+    loading.value = false
+    restartScanner()
+  }
+}
+
+// ==== Switch kamera depan/belakang ====
+const switchCamera = async () => {
+  if (!qrScanner || loading.value) return
+
+  const nextMode = currentFacingMode.value === 'environment' ? 'user' : 'environment'
+
+  try {
+    await qrScanner.setCamera(nextMode)
+    currentFacingMode.value = nextMode
+  } catch (err) {
+    console.error('[Scanner] gagal ganti kamera:', err)
+    error.value = 'Gagal beralih kamera. Perangkat mungkin hanya memiliki satu kamera.'
+  }
+}
+
+const checkMultipleCameras = async () => {
+  try {
+    const cameras = await QrScanner.listCameras(true)
+    hasMultipleCameras.value = cameras.length > 1
+  } catch (err) {
+    hasMultipleCameras.value = false
+  }
+}
+
 const initScanner = async () => {
   if (!videoEl.value) return
 
@@ -165,7 +277,7 @@ const initScanner = async () => {
       videoEl.value,
       (result) => handleScanSuccess(result),
       {
-        preferredCamera: 'environment',
+        preferredCamera: currentFacingMode.value,
         highlightScanRegion: true,
         highlightCodeOutline: true,
         maxScansPerSecond: 10,
@@ -175,6 +287,8 @@ const initScanner = async () => {
     await qrScanner.start()
     cameraReady.value = true
     scanning.value = true
+
+    checkMultipleCameras()
   } catch (err) {
     console.error('[Scanner] gagal memulai kamera:', err)
     cameraReady.value = true
@@ -191,6 +305,7 @@ const initScanner = async () => {
 
 onMounted(() => {
   store.reset()
+  store.setSource('user') // Set source to 'user' when on ScanPage
   initScanner()
 })
 

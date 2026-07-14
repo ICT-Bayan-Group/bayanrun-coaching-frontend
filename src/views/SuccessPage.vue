@@ -92,7 +92,8 @@ const fullName = computed(() => {
 })
 
 const scanAnother = () => {
+  const target = store.source === 'admin' ? { name: 'scan-admin' } : { name: 'scan' }
   store.reset()
-  router.push({ name: 'scan' })
+  router.push(target)
 }
 </script>

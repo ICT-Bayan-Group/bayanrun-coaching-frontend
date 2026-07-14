@@ -299,6 +299,7 @@ const submitForm = async () => {
 }
 
 onMounted(async () => {
+  store.setSource('user') // Set source to 'user' when on RegisterPage
   // If data already in store (from scan), use it
   if (store.invoiceNumber && store.participantData) {
     form.invoice_number = store.invoiceNumber
