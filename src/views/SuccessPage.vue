@@ -31,7 +31,7 @@
               <p class="text-xs font-bold uppercase tracking-widest mb-0.5" style="color: rgba(10,22,40,0.4);">NAMA</p>
               <p class="font-extrabold text-base" style="color: #0A1628;">{{ fullName }}</p>
             </div>
-            <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-widest" style="background: #0A1628; color: #FFFFFF;">LUNAS</span>
+            <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-widest" style="background: #0A1628; color: #FFFFFF;">TERDAFTAR</span>
           </div>
 
           <div style="border-top: 1px solid rgba(10,22,40,0.06);"></div>

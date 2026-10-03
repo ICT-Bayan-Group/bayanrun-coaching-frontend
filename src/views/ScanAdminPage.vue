@@ -3,7 +3,7 @@
     <!-- Header -->
     <header class="px-6 pt-10 pb-6 text-center animate-fade-in">
       <img
-        src="https://res.cloudinary.com/djs5pi7ev/image/upload/v1775466723/LOGO_BR2026_vbixvo.png"
+        src="https://res.cloudinary.com/ddeigqz5d/image/upload/v1790630020/LOGO_BR2026_vbixvo_w7hjua.webp"
         alt="Bayan Run 2026 Logo"
         class="w-30 h-20 object-contain mx-auto mb-4"
       />

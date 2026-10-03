@@ -9,7 +9,7 @@
         <div class="pulse-ring ring-3"></div>
         <div class="logo-mask">
           <img
-            src="https://res.cloudinary.com/djs5pi7ev/image/upload/v1775466723/LOGO_BR2026_vbixvo.png"
+            src="https://res.cloudinary.com/ddeigqz5d/image/upload/v1790630020/LOGO_BR2026_vbixvo_w7hjua.webp"
             alt="Bayan Run 2026"
             class="logo-img"
           />

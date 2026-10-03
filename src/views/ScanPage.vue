@@ -3,7 +3,7 @@
     <!-- Header -->
     <header class="px-6 pt-10 pb-6 text-center animate-fade-in">
       <img
-        src="https://res.cloudinary.com/djs5pi7ev/image/upload/v1775466723/LOGO_BR2026_vbixvo.png"
+        src="https://res.cloudinary.com/ddeigqz5d/image/upload/v1790630020/LOGO_BR2026_vbixvo_w7hjua.webp"
         alt="Bayan Run 2026 Logo"
         class="w-30 h-20 object-contain mx-auto mb-4"
       />
@@ -183,11 +183,22 @@ const processInvoice = async (invoiceNumber) => {
       return
     }
 
+    const registerResponse = await participantApi.register({
+      ...response.data,
+      invoice_number: invoiceNumber,
+    })
+
+    if (registerResponse.status === 'already_registered') {
+      error.value = registerResponse.message
+      restartScanner()
+      return
+    }
+
     store.setInvoice(invoiceNumber)
-    store.setParticipantData(response.data)
-    router.push({ name: 'register' })
+    store.setSuccessData(registerResponse.data)
+    router.push({ name: 'success' })
   } catch (err) {
-    error.value = err.userMessage || 'Invoice tidak ditemukan. Pastikan QR code benar.'
+    error.value = err.userMessage || 'Gagal mendaftarkan peserta. Pastikan invoice benar.'
     restartScanner()
   } finally {
     loading.value = false
