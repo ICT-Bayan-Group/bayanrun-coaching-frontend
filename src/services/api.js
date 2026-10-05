@@ -13,8 +13,15 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = error.response?.data?.message || 'Terjadi kesalahan jaringan'
-    return Promise.reject({ ...error, userMessage: message })
+    const message = error.response?.data?.message || error.message || ''
+    const isCapacityLockError = /registration_capacity_locks|SQLSTATE\[42S02\]|base table or view not found/i.test(message)
+    const containsDatabaseDetails = /SQLSTATE|Connection: mysql|select \* from|doesn't exist/i.test(message)
+    const userMessage = isCapacityLockError
+      ? 'Slot sudah penuh. Pendaftaran untuk sesi ini tidak dapat dilanjutkan.'
+      : containsDatabaseDetails
+        ? 'Pendaftaran gagal diproses. Silakan coba lagi atau hubungi panitia.'
+        : message || 'Terjadi kesalahan jaringan. Silakan coba lagi.'
+    return Promise.reject({ ...error, userMessage })
   }
 )
 

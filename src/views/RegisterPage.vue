@@ -21,21 +21,7 @@
       </div>
     </div>
 
-    <!-- Error state -->
-    <div v-else-if="fetchError" class="flex-1 flex items-center justify-center px-6 animate-slide-up">
-      <div class="text-center">
-        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: rgba(230,57,70,0.08); border: 1px solid rgba(230,57,70,0.2);">
-          <svg class="w-8 h-8" style="color: #E63946;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <h2 class="font-bold text-lg mb-2" style="color: #0A1628;">Data Tidak Ditemukan</h2>
-        <p class="text-sm mb-6" style="color: rgba(10,22,40,0.5);">{{ fetchError }}</p>
-        <button @click="goBack" class="w-full py-3.5 rounded-xl font-extrabold uppercase tracking-widest text-sm" style="background: #E63946; color: #FFFFFF;">
-          Scan Ulang
-        </button>
-      </div>
-    </div>
+    <div v-else-if="fetchError" class="flex-1"></div>
 
     <!-- Registration Form -->
     <form v-else @submit.prevent="submitForm" class="flex-1 px-6 pb-8 animate-slide-up">
@@ -51,16 +37,6 @@
             <p class="text-xs font-bold uppercase tracking-widest mb-1" style="color: #E63946;">BIB</p>
             <p class="font-extrabold text-3xl font-mono" style="color: #FFFFFF;">{{ form.bib || form.no_bib || '-' }}</p>
           </div>
-        </div>
-      </div>
-
-      <!-- Already registered warning -->
-      <div v-if="alreadyRegistered" class="rounded-xl p-4 mb-5" style="border: 1px solid rgba(217,119,6,0.25); background: rgba(217,119,6,0.06);">
-        <div class="flex items-start gap-3">
-          <svg class="w-5 h-5 mt-0.5 flex-shrink-0" style="color: #B45309;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <p class="text-sm font-semibold" style="color: #B45309;">Kamu sudah terdaftar sebelumnya. Data tidak dapat diubah.</p>
         </div>
       </div>
 
@@ -199,13 +175,6 @@
         </div>
       </div>
 
-      <!-- Error -->
-      <transition name="page">
-        <div v-if="submitError" class="rounded-xl p-4 mb-4" style="border: 1px solid rgba(230,57,70,0.25); background: rgba(230,57,70,0.06);">
-          <p class="text-sm font-semibold" style="color: #E63946;">{{ submitError }}</p>
-        </div>
-      </transition>
-
       <!-- Submit Button -->
       <button
         v-if="!alreadyRegistered"
@@ -224,6 +193,15 @@
         Kembali ke Scan
       </button>
     </form>
+
+    <PopupCard
+      :visible="Boolean(fetchError || submitError || alreadyRegistered)"
+      :type="alreadyRegistered ? 'info' : 'error'"
+      :title="alreadyRegistered ? 'Informasi' : 'Registrasi Gagal'"
+      :message="fetchError || submitError || 'Kamu sudah terdaftar sebelumnya. Data tidak dapat diubah.'"
+      :action-label="fetchError || alreadyRegistered ? 'Kembali ke Scan' : 'Coba Lagi'"
+      @action="dismissNotice"
+    />
   </div>
 </template>
 
@@ -232,6 +210,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { participantApi } from '@/services/api'
 import { useRegistrationStore } from '@/stores/registration'
+import PopupCard from '@/components/PopupCard.vue'
 
 const router = useRouter()
 const store = useRegistrationStore()
@@ -276,6 +255,14 @@ const fillForm = (data) => {
 }
 
 const goBack = () => router.push({ name: 'scan' })
+
+const dismissNotice = () => {
+  if (fetchError.value || alreadyRegistered.value) {
+    goBack()
+    return
+  }
+  submitError.value = null
+}
 
 const submitForm = async () => {
   submitting.value = true

@@ -88,23 +88,6 @@
         @change="handleFileSelected"
       />
 
-      <!-- Error state -->
-      <transition name="page">
-        <div v-if="error" class="rounded-xl p-4" style="border: 1px solid rgba(230,57,70,0.25); background: rgba(230,57,70,0.06);">
-          <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 mt-0.5 flex-shrink-0" style="color: #E63946;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p class="font-semibold text-sm" style="color: #E63946;">{{ error }}</p>
-              <button @click="error = null; restartScanner()" class="text-xs mt-1.5 underline underline-offset-2 font-medium" style="color: rgba(10,22,40,0.6);">
-                Coba lagi
-              </button>
-            </div>
-          </div>
-        </div>
-      </transition>
-
       <!-- Manual input fallback -->
       <div class="rounded-2xl p-4" style="background: #FFFFFF; border: 1px solid rgba(10,22,40,0.08);">
         <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color: rgba(10,22,40,0.4);">Atau masukkan invoice manual</p>
@@ -135,6 +118,15 @@
     <footer class="px-6 py-6 text-center">
       <p class="text-xs font-bold tracking-widest uppercase" style="color: rgba(10,22,40,0.35);">Bayan Run 2026 · Coaching Clinic</p>
     </footer>
+
+    <PopupCard
+      :visible="Boolean(error)"
+      :type="errorType"
+      :title="errorType === 'info' ? 'Informasi' : 'Pendaftaran Gagal'"
+      :message="error"
+      :action-label="errorType === 'info' ? 'Mengerti' : 'Coba Lagi'"
+      @action="dismissError"
+    />
   </div>
 </template>
 
@@ -144,6 +136,7 @@ import { useRouter } from 'vue-router'
 import QrScanner from 'qr-scanner'
 import { participantApi } from '@/services/api'
 import { useRegistrationStore } from '@/stores/registration'
+import PopupCard from '@/components/PopupCard.vue'
 
 const router = useRouter()
 const store = useRegistrationStore()
@@ -153,6 +146,7 @@ const fileInputEl = ref(null)
 const scanning = ref(false)
 const cameraReady = ref(false)
 const error = ref(null)
+const errorType = ref('error')
 const loading = ref(false)
 const manualInvoice = ref('')
 const hasMultipleCameras = ref(false)
@@ -178,7 +172,8 @@ const processInvoice = async (invoiceNumber) => {
     const response = await participantApi.getByInvoice(invoiceNumber)
 
     if (response.status === 'already_registered') {
-      error.value = response.message
+      error.value = response.message || 'Peserta ini sudah terdaftar sebelumnya.'
+      errorType.value = 'info'
       restartScanner()
       return
     }
@@ -189,7 +184,8 @@ const processInvoice = async (invoiceNumber) => {
     })
 
     if (registerResponse.status === 'already_registered') {
-      error.value = registerResponse.message
+      error.value = registerResponse.message || 'Peserta ini sudah terdaftar sebelumnya.'
+      errorType.value = 'info'
       restartScanner()
       return
     }
@@ -199,6 +195,7 @@ const processInvoice = async (invoiceNumber) => {
     router.push({ name: 'success' })
   } catch (err) {
     error.value = err.userMessage || 'Gagal mendaftarkan peserta. Pastikan invoice benar.'
+    errorType.value = 'error'
     restartScanner()
   } finally {
     loading.value = false
@@ -214,6 +211,11 @@ const submitManual = () => {
 const restartScanner = () => {
   scanning.value = false
   qrScanner?.start().then(() => { scanning.value = true })
+}
+
+const dismissError = () => {
+  error.value = null
+  restartScanner()
 }
 
 // ==== Upload QR dari galeri ====
@@ -241,6 +243,7 @@ const handleFileSelected = async (e) => {
 
     if (!invoiceNumber) {
       error.value = 'QR code tidak terbaca dari gambar tersebut.'
+      errorType.value = 'error'
       loading.value = false
       restartScanner()
       return
@@ -251,6 +254,7 @@ const handleFileSelected = async (e) => {
   } catch (err) {
     console.error('[Scanner] gagal membaca QR dari gambar:', err)
     error.value = 'Tidak dapat menemukan QR code pada gambar. Coba gambar lain atau gunakan input manual.'
+    errorType.value = 'error'
     loading.value = false
     restartScanner()
   }
@@ -268,6 +272,7 @@ const switchCamera = async () => {
   } catch (err) {
     console.error('[Scanner] gagal ganti kamera:', err)
     error.value = 'Gagal beralih kamera. Perangkat mungkin hanya memiliki satu kamera.'
+    errorType.value = 'error'
   }
 }
 
@@ -311,6 +316,7 @@ const initScanner = async () => {
     } else {
       error.value = 'Tidak dapat memulai kamera. Coba lagi atau gunakan input invoice manual di bawah.'
     }
+    errorType.value = 'error'
   }
 }
 

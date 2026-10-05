@@ -52,23 +52,6 @@
         </div>
       </div>
 
-      <!-- Error state -->
-      <transition name="page">
-        <div v-if="error" class="rounded-xl p-4" style="border: 1px solid rgba(230,57,70,0.25); background: rgba(230,57,70,0.06);">
-          <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 mt-0.5 flex-shrink-0" style="color: #E63946;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p class="font-semibold text-sm" style="color: #E63946;">{{ error }}</p>
-              <button @click="error = null; restartScanner()" class="text-xs mt-1.5 underline underline-offset-2 font-medium" style="color: rgba(10,22,40,0.6);">
-                Coba lagi
-              </button>
-            </div>
-          </div>
-        </div>
-      </transition>
-
       <!-- Manual input fallback -->
       <div class="rounded-2xl p-4" style="background: #FFFFFF; border: 1px solid rgba(10,22,40,0.08);">
         <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color: rgba(10,22,40,0.4);">Atau masukkan invoice manual</p>
@@ -99,6 +82,15 @@
     <footer class="px-6 py-6 text-center">
       <p class="text-xs font-bold tracking-widest uppercase" style="color: rgba(10,22,40,0.35);">Bayan Run 2026 · Admin Panel</p>
     </footer>
+
+    <PopupCard
+      :visible="Boolean(error)"
+      :type="errorType"
+      :title="errorType === 'info' ? 'Informasi' : 'Pendaftaran Gagal'"
+      :message="error"
+      :action-label="errorType === 'info' ? 'Mengerti' : 'Coba Lagi'"
+      @action="dismissError"
+    />
   </div>
 </template>
 
@@ -108,6 +100,7 @@ import { useRouter } from 'vue-router'
 import QrScanner from 'qr-scanner'
 import { participantApi } from '@/services/api'
 import { useRegistrationStore } from '@/stores/registration'
+import PopupCard from '@/components/PopupCard.vue'
 
 const router = useRouter()
 const store = useRegistrationStore()
@@ -116,6 +109,7 @@ const videoEl = ref(null)
 const scanning = ref(false)
 const cameraReady = ref(false)
 const error = ref(null)
+const errorType = ref('error')
 const loading = ref(false)
 const manualInvoice = ref('')
 let qrScanner = null
@@ -140,7 +134,8 @@ const processInvoice = async (invoiceNumber) => {
     const lookupResponse = await participantApi.getByInvoice(invoiceNumber)
 
     if (lookupResponse.status === 'already_registered') {
-      error.value = lookupResponse.message
+      error.value = lookupResponse.message || 'Peserta ini sudah terdaftar sebelumnya.'
+      errorType.value = 'info'
       restartScanner()
       return
     }
@@ -157,11 +152,19 @@ const processInvoice = async (invoiceNumber) => {
 
     const registerResponse = await participantApi.register(registerPayload)
 
+    if (registerResponse.status === 'already_registered') {
+      error.value = registerResponse.message || 'Peserta ini sudah terdaftar sebelumnya.'
+      errorType.value = 'info'
+      restartScanner()
+      return
+    }
+
     store.setInvoice(invoiceNumber)
     store.setSuccessData(registerResponse.data)
     router.push({ name: 'success' })
   } catch (err) {
     error.value = err.userMessage || 'Gagal mendaftarkan peserta. Pastikan invoice benar.'
+    errorType.value = 'error'
     restartScanner()
   } finally {
     loading.value = false
@@ -177,6 +180,11 @@ const submitManual = () => {
 const restartScanner = () => {
   scanning.value = false
   qrScanner?.start().then(() => { scanning.value = true })
+}
+
+const dismissError = () => {
+  error.value = null
+  restartScanner()
 }
 
 const initScanner = async () => {
@@ -208,6 +216,7 @@ const initScanner = async () => {
     } else {
       error.value = 'Tidak dapat memulai kamera. Coba lagi atau gunakan input invoice manual di bawah.'
     }
+    errorType.value = 'error'
   }
 }
 
