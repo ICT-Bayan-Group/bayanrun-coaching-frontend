@@ -129,7 +129,6 @@
     />
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -153,18 +152,37 @@ const hasMultipleCameras = ref(false)
 const currentFacingMode = ref('environment') // 'environment' = belakang, 'user' = depan
 let qrScanner = null
 
+// ==== Anti-spam scan ====
+const SCAN_COOLDOWN_MS = 3000   // QR yang sama diabaikan selama ini
+const RESTART_DELAY_MS = 600    // jeda sebelum kamera scan lagi setelah popup ditutup
+let isProcessing = false        // lock sinkron (ref terlalu lambat untuk callback 10x/detik)
+let lastCode = ''
+let lastCodeAt = 0
+
 const handleScanSuccess = async (result) => {
-  if (loading.value) return
+  // abaikan semua scan selama proses berjalan atau popup tampil
+  if (isProcessing || loading.value || error.value) return
+
   const invoiceNumber = (result?.data || result || '').trim().toUpperCase()
   if (!invoiceNumber) return
 
-  scanning.value = false
-  qrScanner?.stop()
+  // abaikan QR yang sama dalam masa cooldown
+  const now = Date.now()
+  if (invoiceNumber === lastCode && now - lastCodeAt < SCAN_COOLDOWN_MS) return
+  lastCode = invoiceNumber
+  lastCodeAt = now
 
   await processInvoice(invoiceNumber)
 }
 
 const processInvoice = async (invoiceNumber) => {
+  if (isProcessing) return
+  isProcessing = true
+
+  // hentikan scanner selama proses; dinyalakan lagi hanya via dismissError
+  scanning.value = false
+  qrScanner?.stop()
+
   loading.value = true
   error.value = null
 
@@ -174,7 +192,6 @@ const processInvoice = async (invoiceNumber) => {
     if (response.status === 'already_registered') {
       error.value = response.message || 'Peserta ini sudah terdaftar sebelumnya.'
       errorType.value = 'info'
-      restartScanner()
       return
     }
 
@@ -186,7 +203,6 @@ const processInvoice = async (invoiceNumber) => {
     if (registerResponse.status === 'already_registered') {
       error.value = registerResponse.message || 'Peserta ini sudah terdaftar sebelumnya.'
       errorType.value = 'info'
-      restartScanner()
       return
     }
 
@@ -196,44 +212,54 @@ const processInvoice = async (invoiceNumber) => {
   } catch (err) {
     error.value = err.userMessage || 'Gagal mendaftarkan peserta. Pastikan invoice benar.'
     errorType.value = 'error'
-    restartScanner()
   } finally {
     loading.value = false
+    isProcessing = false
   }
 }
 
 const submitManual = () => {
   const invoice = manualInvoice.value.trim().toUpperCase()
   if (!invoice) return
+  lastCode = invoice
+  lastCodeAt = Date.now()
   processInvoice(invoice)
 }
 
-const restartScanner = () => {
-  scanning.value = false
-  qrScanner?.start().then(() => { scanning.value = true })
+const restartScanner = async () => {
+  if (!qrScanner) return
+  try {
+    await qrScanner.start()
+    scanning.value = true
+  } catch (err) {
+    console.error('[Scanner] gagal restart kamera:', err)
+  }
 }
 
 const dismissError = () => {
   error.value = null
-  restartScanner()
+  // mulai ulang cooldown dari saat popup ditutup, supaya QR yang masih
+  // diarahkan ke kamera tidak langsung terbaca lagi
+  lastCodeAt = Date.now()
+  setTimeout(() => {
+    if (!error.value && !isProcessing) restartScanner()
+  }, RESTART_DELAY_MS)
 }
 
 // ==== Upload QR dari galeri ====
 const triggerFilePicker = () => {
-  if (loading.value) return
+  if (loading.value || isProcessing) return
   fileInputEl.value?.click()
 }
 
 const handleFileSelected = async (e) => {
   const file = e.target.files?.[0]
-  // reset value biar bisa pilih file yang sama lagi kalau perlu
   e.target.value = ''
-  if (!file) return
+  if (!file || isProcessing) return
 
   loading.value = true
   error.value = null
 
-  // pause kamera sementara biar nggak rebutan proses sama hasil scan galeri
   qrScanner?.stop()
   scanning.value = false
 
@@ -245,24 +271,24 @@ const handleFileSelected = async (e) => {
       error.value = 'QR code tidak terbaca dari gambar tersebut.'
       errorType.value = 'error'
       loading.value = false
-      restartScanner()
-      return
+      return // scanner dinyalakan lagi lewat dismissError
     }
 
     loading.value = false
+    lastCode = invoiceNumber
+    lastCodeAt = Date.now()
     await processInvoice(invoiceNumber)
   } catch (err) {
     console.error('[Scanner] gagal membaca QR dari gambar:', err)
     error.value = 'Tidak dapat menemukan QR code pada gambar. Coba gambar lain atau gunakan input manual.'
     errorType.value = 'error'
     loading.value = false
-    restartScanner()
   }
 }
 
 // ==== Switch kamera depan/belakang ====
 const switchCamera = async () => {
-  if (!qrScanner || loading.value) return
+  if (!qrScanner || loading.value || isProcessing) return
 
   const nextMode = currentFacingMode.value === 'environment' ? 'user' : 'environment'
 
@@ -296,7 +322,7 @@ const initScanner = async () => {
         preferredCamera: currentFacingMode.value,
         highlightScanRegion: true,
         highlightCodeOutline: true,
-        maxScansPerSecond: 10,
+        maxScansPerSecond: 3, // sebelumnya 10, lebih kalem
       }
     )
 
