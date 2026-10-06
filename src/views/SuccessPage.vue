@@ -48,10 +48,6 @@
                 <p class="text-xs font-bold uppercase tracking-widest mb-0.5" style="color: rgba(10,22,40,0.4);">KATEGORI</p>
                 <p class="font-extrabold text-base" style="color: #0A1628;">{{ successData.category }}</p>
               </div>
-              <div v-if="successData?.bib" class="text-right">
-                <p class="text-xs font-bold uppercase tracking-widest mb-0.5" style="color: #E63946;">BIB</p>
-                <p class="font-extrabold text-3xl font-mono" style="color: #0A1628;">{{ successData.bib }}</p>
-              </div>
             </div>
           </template>
         </div>

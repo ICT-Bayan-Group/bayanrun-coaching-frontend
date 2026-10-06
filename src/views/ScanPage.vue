@@ -195,22 +195,14 @@ const processInvoice = async (invoiceNumber) => {
       return
     }
 
-    const registerResponse = await participantApi.register({
+    store.setInvoice(invoiceNumber)
+    store.setParticipantData({
       ...response.data,
       invoice_number: invoiceNumber,
     })
-
-    if (registerResponse.status === 'already_registered') {
-      error.value = registerResponse.message || 'Peserta ini sudah terdaftar sebelumnya.'
-      errorType.value = 'info'
-      return
-    }
-
-    store.setInvoice(invoiceNumber)
-    store.setSuccessData(registerResponse.data)
-    router.push({ name: 'success' })
+    router.push({ name: 'register' })
   } catch (err) {
-    error.value = err.userMessage || 'Gagal mendaftarkan peserta. Pastikan invoice benar.'
+    error.value = err.userMessage || 'Gagal mengambil data peserta. Pastikan invoice benar.'
     errorType.value = 'error'
   } finally {
     loading.value = false
