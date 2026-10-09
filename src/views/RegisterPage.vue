@@ -27,7 +27,7 @@
     <form v-else @submit.prevent="submitForm" class="flex-1 px-6 pb-8 animate-slide-up">
 
       <!-- Section: Data Pribadi -->
-      <div class="mb-1 mt-5">
+      <div class="mb-7 mt-5">
         <div class="flex items-center gap-3 mb-4">
           <div class="w-1 h-4 rounded-full" style="background: #E63946;"></div>
           <p class="text-xs font-extrabold uppercase tracking-[0.15em]" style="color: #E63946;">Data Pribadi</p>
@@ -65,68 +65,8 @@
         </div>
       </div>
 
-      <!-- Section: Dokumen -->
-      <div class="mb-1 mt-6">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-1 h-4 rounded-full" style="background: #E63946;"></div>
-          <p class="text-xs font-extrabold uppercase tracking-[0.15em]" style="color: #E63946;">Dokumen Identitas</p>
-          <div class="flex-1 h-px" style="background: rgba(10,22,40,0.08);"></div>
-        </div>
-        <div class="space-y-3">
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: rgba(10,22,40,0.45);">Jenis ID</label>
-              <select v-model="form.id_type" :disabled="alreadyRegistered" class="w-full rounded-xl px-3 py-2.5 text-sm outline-none disabled:opacity-50" style="background: #FFFFFF; border: 1px solid rgba(10,22,40,0.12); color: #0A1628;">
-                <option value="">Pilih</option>
-                <option value="KTP">KTP</option>
-                <option value="Passport">Passport</option>
-                <option value="SIM">SIM</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: rgba(10,22,40,0.45);">Nomor ID</label>
-              <!-- Terkunci & dimasking jika nomor ID sudah ada dari data peserta -->
-              <input v-if="idLocked" :value="maskedIdNumber" type="text" readonly disabled class="w-full rounded-xl px-3 py-2.5 text-sm font-mono outline-none opacity-50" style="background: #FFFFFF; border: 1px solid rgba(10,22,40,0.12); color: #0A1628;" />
-              <input v-else v-model="form.id_number" type="text" placeholder="16 digit" :disabled="alreadyRegistered" class="w-full rounded-xl px-3 py-2.5 text-sm font-mono outline-none disabled:opacity-50" style="background: #FFFFFF; border: 1px solid rgba(10,22,40,0.12); color: #0A1628;" />
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: rgba(10,22,40,0.45);">Tanggal Lahir</label>
-              <input v-model="form.date_of_birth" type="date" :disabled="alreadyRegistered" class="w-full rounded-xl px-3 py-2.5 text-sm outline-none disabled:opacity-50" style="background: #FFFFFF; border: 1px solid rgba(10,22,40,0.12); color: #0A1628;" />
-            </div>
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: rgba(10,22,40,0.45);">Usia</label>
-              <input v-model="form.age" type="number" placeholder="30" :disabled="true" class="w-full rounded-xl px-3 py-2.5 text-sm outline-none opacity-50" style="background: #FFFFFF; border: 1px solid rgba(10,22,40,0.12); color: #0A1628;" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Section: Kontak Darurat -->
-      <div class="mb-7 mt-6">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-1 h-4 rounded-full" style="background: #E63946;"></div>
-          <p class="text-xs font-extrabold uppercase tracking-[0.15em]" style="color: #E63946;">Kontak Darurat</p>
-          <div class="flex-1 h-px" style="background: rgba(10,22,40,0.08);"></div>
-        </div>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: rgba(10,22,40,0.45);">Nama</label>
-            <input v-model="form.emergency_contact_name" type="text" placeholder="Nama kontak darurat" :disabled="alreadyRegistered" class="w-full rounded-xl px-3 py-2.5 text-sm outline-none disabled:opacity-50" style="background: #FFFFFF; border: 1px solid rgba(10,22,40,0.12); color: #0A1628;" />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: rgba(10,22,40,0.45);">No. Telepon</label>
-              <input v-model="form.emergency_contact_phone" type="tel" placeholder="08xxxxxxxxxx" :disabled="alreadyRegistered" class="w-full rounded-xl px-3 py-2.5 text-sm outline-none disabled:opacity-50" style="background: #FFFFFF; border: 1px solid rgba(10,22,40,0.12); color: #0A1628;" />
-            </div>
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: rgba(10,22,40,0.45);">Hubungan</label>
-              <input v-model="form.emergency_contact_status" type="text" placeholder="Suami/Istri/dll" :disabled="alreadyRegistered" class="w-full rounded-xl px-3 py-2.5 text-sm outline-none disabled:opacity-50" style="background: #FFFFFF; border: 1px solid rgba(10,22,40,0.12); color: #0A1628;" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Section Dokumen Identitas & Kontak Darurat: disembunyikan dari tampilan.
+           Data tetap ada di `form` dan ikut terkirim ke API. -->
 
       <!-- Submit Button -->
       <button
